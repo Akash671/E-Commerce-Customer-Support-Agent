@@ -1,0 +1,18 @@
+streamlit
+requests
+fastapi
+uvicorn
+pydantic
+pytest
+httpx
+# LangChain + model/adaptor packages
+langchain
+langchain-google-genai
+google-generativeai
+
+# LangGraph (MCP graph utilities)
+langgraph
+
+# Environment handling and interactive tools
+python-dotenv
+ipython

@@ -1,0 +1,67 @@
+name: CI and CD Pipeline for Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # --- CI JOB (The Test Gate) ---
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest
+
+  # --- CD JOB (The Deployment) ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test  # <--- CRITICAL: Only starts if build-and-test passes
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Configure Git Identity
+          git config --global user.email "hitmanmit1996@gmail.com"
+          git config --global user.name "Akash671"
+
+          # 1. Clone the Space
+          git clone https://Akash671:$HF_TOKEN@huggingface.co/spaces/Akash671/cnn-image-classifier hf-space
+
+          # 2. Sync local files
+          rsync -av --exclude '.git' ./ hf-space/
+
+          cd hf-space
+
+          # 3. Git LFS setup
+          # git lfs install
+          # git lfs track "*.keras"
+          # git lfs track "*.PNG"
+          # git lfs track "*.png"
+          # git add .gitattributes
+
+          # 4. Push to HF
+          git remote set-url origin https://Akash671:$HF_TOKEN@huggingface.co/spaces/Akash671/cnn-image-classifier
+          git add .
+          git commit -m "Auto deploy after successful CI" || echo "No changes"
+          git push origin main
