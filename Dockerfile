@@ -1,26 +1,20 @@
-# env. image
+# Base image
 FROM python:3.11
 
-# set working directory
+# Set working directory
 WORKDIR /app
 
-# copy requirements file
+# Copy requirements
 COPY requirements.txt .
 
-# install dependencies
-
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-
-# copy the rest of the application code
-
+# Copy project files
 COPY . .
 
+# Hugging Face Spaces uses 7860
+EXPOSE 7860
 
-# expose port
-
-EXPOSE 8000
-
-# command to run the application
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start Streamlit
+CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0"]

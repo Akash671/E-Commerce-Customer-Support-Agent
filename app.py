@@ -2,53 +2,70 @@
 author : @akash
 """
 
-
 import streamlit as st
-import requests
-#import os
+from graph import graph
 
-# Configure the backend URL (Fallback to local if env variable isn't set)
-BACKEND_URL = "http://localhost:8000"
-#"http://localhost:8080"
+# Streamlit page config
+st.set_page_config(
+    page_title="E-Commerce Assistant",
+    page_icon="🛍️"
+)
 
-#BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
-
-st.set_page_config(page_title="E-Commerce Assistant", page_icon="🛍️")
 st.title("🛍️ E-Commerce Customer Support")
 st.caption("Ask me about orders, returns, or product details!")
 
-# Initialize session state for chat history
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# Display previous chat messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Handle new user input
+# Handle user input
 if user_query := st.chat_input("How can I help you today?"):
+
+    # Store user message
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_query
+    })
+
     # Display user message
-    st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
 
-    # Call FastAPI backend
+    # Generate assistant response
     with st.chat_message("assistant"):
+
         with st.spinner("Thinking..."):
+
             try:
-                response = requests.post(
-                    f"{BACKEND_URL}/chat",
-                    json={"user_query": user_query},
-                    timeout=30
-                )
-                
-                if response.status_code == 200:
-                    agent_response = response.json()["response"]
-                    st.markdown(agent_response)
-                    st.session_state.messages.append({"role": "assistant", "content": agent_response})
+                # Initialize graph state
+                state = {
+                    "messages": [],
+                    "user_query": user_query,
+                    "tool_result": ""
+                }
+
+                # Invoke graph
+                result = graph.invoke(state)
+
+                # Extract response
+                if result.get("messages"):
+                    agent_response = result["messages"][-1].content
                 else:
-                    st.error(f"Backend Error: {response.text}")
-                    
-            except requests.exceptions.ConnectionError:
-                st.error("Could not connect to the backend server. Is it running?")
+                    agent_response = "No response generated."
+
+                # Display response
+                st.markdown(agent_response)
+
+                # Save assistant response
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": agent_response
+                })
+
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
